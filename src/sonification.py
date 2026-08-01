@@ -1,14 +1,21 @@
 import numpy as np
 import sounddevice as sd
 import threading
-from . import config as cfg
+import config as cfg
+
 
 class AudioEngine:
     def __init__(self):
         self.lock = threading.Lock()
-        self.state = {"f": cfg.DEFAULT_F, "k": cfg.DEFAULT_K, "v_mean": 0.0,
-                      "v_row": np.zeros(cfg.WIDTH), "entropy": 0.0,
-                      "gradient": 0.0, "pan": 0.0}
+        self.state = {
+            "f": cfg.DEFAULT_F,
+            "k": cfg.DEFAULT_K,
+            "v_mean": 0.0,
+            "v_row": np.zeros(cfg.WIDTH),
+            "entropy": 0.0,
+            "gradient": 0.0,
+            "pan": 0.0,
+        }
         self._phases = np.zeros(cfg.MAX_VOICES)
         self._active = False
         self._stream = None
@@ -19,7 +26,8 @@ class AudioEngine:
             self.state.update(new_state)
 
     def _callback(self, outdata, frames, time, status):
-        if status: print(f"⚠️ Audio callback status: {status}")
+        if status:
+            print(f"⚠️ Audio callback status: {status}")
         with self.lock:
             f, k = self.state["f"], self.state["k"]
             v_row = self.state["v_row"]
@@ -38,7 +46,9 @@ class AudioEngine:
         if trigger:
             idx = np.random.randint(0, len(v_row), cfg.MAX_VOICES)
             pitches = v_row[idx] * len(cfg.SCALE_DEGREES)
-            pitches = np.clip(pitches.astype(int), 0, len(cfg.SCALE_DEGREES)-1)
+            pitches = np.clip(
+                pitches.astype(int), 0, len(cfg.SCALE_DEGREES) - 1
+            )
             freqs = cfg.BASE_FREQ * (2 ** (cfg.SCALE_DEGREES[pitches] / 12.0))
             amps = np.ones(cfg.MAX_VOICES) * 0.15 * self.state["v_mean"]
 
@@ -52,7 +62,14 @@ class AudioEngine:
                 outdata[:, 1] += amps[v] * np.sin(self._phases[v])
 
         # 4. Add noise floor (entropy-driven)
-        noise_amp = 10 ** (cfg.ENTROPY_NOISE_MIN + entropy * (cfg.ENTROPY_NOISE_MAX - cfg.ENTROPY_NOISE_MIN)) / 20
+        noise_amp = (
+            10
+            ** (
+                cfg.ENTROPY_NOISE_MIN
+                + entropy * (cfg.ENTROPY_NOISE_MAX - cfg.ENTROPY_NOISE_MIN)
+            )
+            / 20
+        )
         noise = np.random.randn(cfg.FRAME_SIZE, 2) * noise_amp
         outdata += noise
 
@@ -77,7 +94,7 @@ class AudioEngine:
             samplerate=cfg.SAMPLE_RATE,
             blocksize=cfg.FRAME_SIZE,
             channels=2,
-            callback=self._callback
+            callback=self._callback,
         )
         self._stream.start()
         self._active = True

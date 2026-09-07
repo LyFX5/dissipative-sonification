@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "An interactive animation and audiation of dissipative system"
 readme = "README.md"
 license = {file = "LICENSE"}
-authors = [{name = "The Simulations Can Teach Authors"}]
+authors = [{name = "The Dissipative Sonification Authors"}]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",

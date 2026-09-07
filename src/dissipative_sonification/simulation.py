@@ -2,7 +2,7 @@ import numpy as np
 
 # from scipy.ndimage import gaussian_filter
 
-import config as cfg
+from dissipative_sonification import config as cfg
 
 
 class GrayScott:

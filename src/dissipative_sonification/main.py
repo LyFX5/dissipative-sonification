@@ -5,9 +5,9 @@ Entry point for running the Gray-Scott reaction-diffusion sonification.
 """
 
 import sys
-from simulation import GrayScott
-from sonification import AudioEngine
-from viz import Visualizer
+from dissipative_sonification.simulation import GrayScott
+from dissipative_sonification.sonification import AudioEngine
+from dissipative_sonification.viz import Visualizer
 
 
 def main():

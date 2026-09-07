@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.widgets import Slider, Button
-from simulation import GrayScott
-from sonification import AudioEngine
-import config as cfg
+from dissipative_sonification.simulation import GrayScott
+from dissipative_sonification.sonification import AudioEngine
+from dissipative_sonification import config as cfg
 
 
 class Visualizer:

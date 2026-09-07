@@ -1,7 +1,7 @@
 import numpy as np
 import sounddevice as sd
 import threading
-import config as cfg
+from dissipative_sonification import config as cfg
 
 
 class AudioEngine:
@@ -29,12 +29,27 @@ class AudioEngine:
         if status:
             print(f"⚠️ Audio callback status: {status}")
         with self.lock:
+
             f, k = self.state["f"], self.state["k"]
             v_row = self.state["v_row"]
             entropy = self.state["entropy"]
             gradient = self.state["gradient"]
             pan = self.state["pan"]
 
+        samplerate = 44000
+
+        t = np.linspace(0, frames / samplerate, frames, endpoint=False)
+
+        amp = 0.4
+        freq = 100000 * f
+
+        outdata[:, 0] = amp * np.sin(
+            2 * np.pi * freq * t
+        )  # Mono: left channel
+
+        outdata[:, 1] = outdata[:, 0] * 0.8  # Stereo: right
+
+        """
         # 1. Tempo/Event Rate → probability of triggering notes this frame
         bpm = cfg.F_TEMPO_MIN + (f * (cfg.F_TEMPO_MAX - cfg.F_TEMPO_MIN))
         event_prob = bpm / 60.0 / (cfg.SAMPLE_RATE / cfg.FRAME_SIZE)
@@ -85,9 +100,10 @@ class AudioEngine:
         right_gain = np.sin(0.5 * (pan + 1) * np.pi / 2)
         outdata[:, 0] *= left_gain
         outdata[:, 1] *= right_gain
-
+        
         # Clip to prevent distortion
         np.clip(outdata, -1.0, 1.0, out=outdata)
+        """
 
     def start(self):
         self._stream = sd.OutputStream(

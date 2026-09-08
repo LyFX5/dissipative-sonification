@@ -25,27 +25,39 @@ Traditional visualizations show *what* emerges, but often miss *how* it feels to
 
 ## 🏗️ Architecture
 
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   UI Controls   │────▶│  Simulation Core │────▶│  State Sampler  │
-│ (f, k sliders)  │     │  (Gray-Scott PDE)│     │  (Metrics Calc) │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-│
-┌─────────────────┐     ┌──────────────────┐     ┌────────▼────────┐
-│   Matplotlib    │◀────│  Animation Loop  │◀────│  Thread-Safe    │
-│   Visualization │     │  (50ms refresh)  │     │  State Buffer   │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-│
-┌─────────────────┐     ┌──────────────────┐     ┌────────▼────────┐
-│   Audio Output  │◀────│  Real-Time Synth │◀────│  Callback Engine│
-│   (PortAudio)   │     │  (Phase Acc + LPF)│     │  (sounddevice)  │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
+```
+                 ┌──────────────────────┐
+                 │      Qt Event Loop   │
+                 │  (QTimer @ ~24 Hz)   │
+                 │                      │
+  Mouse scrub ──▶│  MatrixWidget        │──▶ add_brush()
+                 │    (QPainter)        │
+                 └──────────┬───────────┘
+                            │ GrayScott.step()
+                            ▼
+                 ┌──────────────────────┐
+                 │  Simulation Core     │
+                 │   (Gray-Scott PDE)   │
+                 └──────────┬───────────┘
+                            │ get_metrics()
+                            ▼
+              ┌─────────────┴─────────────┐
+              │     Thread-Safe State     │
+              │         (lock)            │
+              └─────────────┬─────────────┘
+                            │ update_state()
+              ┌─────────────┴─────────────┐
+              │   AudioEngine (PortAudio  │  ◀─ separate callback thread
+              │   real-time synth)        │
+              └───────────────────────────┘
+```
 
 ### 🔄 Data Flow
 
-1. **Simulation**: Vectorized Gray-Scott solver runs on main thread via `matplotlib.animation.FuncAnimation`
-2. **Metrics Extraction**: `get_metrics()` computes entropy, gradient, spatial centroid, and V-field row
-3. **State Buffer**: Thread-safe dictionary updated at ~20Hz
-4. **Audio Callback**: `sounddevice` runs at 44.1kHz, reads latest state, generates frame of audio
+1. **Pipeline Tick**: A single `QTimer` fires ~24×/sec (Qt thread): simulate a step → merge any brushed concentration → extract metrics → push to the audio engine → repaint matrix → update plots.
+2. **Metrics Extraction**: `get_metrics()` computes entropy, gradient, spatial centroid, and the V-field row.
+3. **State Buffer**: Thread-safe dict (lock) updated each tick; read by the audio callback.
+4. **Audio Callback**: `sounddevice` runs on its own thread at 44.1 kHz, reads the latest state, and synthesizes each frame of audio.
 5. **Sonification Mapping**:
     - `f` (feed) → Event probability / rhythmic density
     - `k` (kill) → Low-pass filter cutoff / timbral brightness
@@ -62,12 +74,20 @@ dissipative-sonification/
 ├── README.md                 # Project documentation (this file)
 ├── requirements.txt          # Python dependencies
 └── src/
-    ├── init.py           # Package marker
-    ├── config.py             # Constants, scales, mapping ranges
-    ├── simulation.py         # Gray-Scott solver & feature extraction
-    ├── sonification.py       # Real-time audio synthesis engine
-    ├── viz.py                # Matplotlib UI, sliders, animation loop
-    └── main.py               # Entry point, thread coordination
+    ├── init.py               # Package marker
+    ├── config.py             # Constants, scales, mapping ranges, brush params
+    ├── simulation.py         # Gray-Scott solver, feature extraction, brush injection
+    ├── sonification.py       # Real-time audio synthesis engine (PortAudio thread)
+    ├── qt_app.py             # Main window: splitter layout + QTimer pipeline
+    ├── matrix_widget.py      # Interactive QPainter matrix (mouse-scrub painting)
+    ├── plots_widget.py       # Animated energy / entropy / concentration / phase-plane
+    ├── controls_widget.py    # Sliders & value boxes for f, k; pause/reset
+    └── main.py               # Entry point, QApplication, thread coordination
+
+> The GUI is built with **PySide6 (Qt)**. A single `QTimer` drives the
+> simulation + rendering + metric push each tick, while `sounddevice` runs
+> audio on its own PortAudio callback thread. There is no separate pygame or
+> matplotlib event loop — everything shares the one Qt event loop.
 
 ---
 
@@ -87,14 +107,16 @@ pip install -r requirements.txt
 **Running**
 
 ```bash
-python -m src.main
+python -m dissipative_sonification.main
 ```
 
 ### Controls
 
+- **Matrix (left)**: Click or scrube with the cursor to inject concentration (V) — and deplete U — along the trajectory, feeding the live simulation.
 - **Feed (f)**: Controls energy input. Higher `f` → faster rhythms, more events
 - **Kill (k)**: Controls dissipation. Higher `k` → brighter timbre, faster decay
 - **Pause/Resume**: Halts simulation & audio scheduling
+- **Reset**: Re-seeds the field and clears painted concentration
 - **Window Close**: Safely shuts down audio stream and exits
 
 ### Troubleshooting
@@ -103,7 +125,7 @@ python -m src.main
 | --- | --- |
 | `OSError: PortAudio not found` | Install PortAudio system package or use `conda install portaudio` |
 | `Audio crackling/drops` | Increase `FRAME_SIZE` in `config.py` to 2048 or 4096 |
-| `Matplotlib GUI freezes` | Run with `MPLBACKEND=Qt5Agg` or `TkAgg` |
+| Qt window fails to open | Ensure PySide6 is installed: `pip install PySide6` |
 | `No sound` | Check system audio output device; ensure stream is active in OS mixer |
 
 ### Extending
@@ -124,9 +146,9 @@ MIT License. Free to use, modify, and distribute. Third-party libraries governed
 
 ### 🚀 How to Run & Validate
 
-1. Install dependencies
-2. Run `python -m src.main`
-3. Adjust sliders:
+1. Install dependencies (`pip install -r requirements.txt`, in your conda env)
+2. Run `python -m dissipative_sonification.main`
+3. Paint on the matrix and adjust sliders:
     - `f ≈ 0.055, k ≈ 0.062` → spots & mitosis → rhythmic, pitched textures
     - `f > 0.08, k < 0.05` → traveling waves → arpeggiated, panning sequences
     - `f < 0.04` → homogeneous decay → ambient drone + rising noise

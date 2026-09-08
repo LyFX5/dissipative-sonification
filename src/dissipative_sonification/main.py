@@ -1,36 +1,39 @@
 #!/usr/bin/env python3
 """
 Dissipative Sonification: Interactive Simulation & Audio Mapping
-Entry point for running the Gray-Scott reaction-diffusion sonification.
+Entry point for running the Gray-Scott reaction-diffusion sonification studio.
 """
 
 import sys
+from PySide6.QtWidgets import QApplication
+
 from dissipative_sonification.simulation import GrayScott
 from dissipative_sonification.sonification import AudioEngine
-from dissipative_sonification.viz import Visualizer
+from dissipative_sonification.qt_app import QApp
 
 
 def main():
-    print("🔬 Initializing Dissipative Sonification Pipeline...")
-    print("🎛️  Use sliders to adjust Feed (f) and Kill (k) parameters.")
-    print(
-        "🔊 Audio maps: f→tempo, k→filter, V→pitch, entropy→noise, centroid→pan"
-    )
+    print("🔬 Initializing Dissipative Sonification Studio...")
+    print("🎨 Paint on the matrix, scrub to inject concentration.")
+    print("🎛️  Adjust Feed (f) and Kill (k) on the right.")
+    print("🔊 Audio maps: f→tempo, k→filter, V→pitch, entropy→noise, centroid→pan")
     print("⚠️  Close window or press Ctrl+C to stop.")
 
+    app = QApplication.instance() or QApplication(sys.argv)
     sim = GrayScott()
     audio = AudioEngine()
-    viz = Visualizer(sim, audio)
+    window = QApp(sim, audio)
+    window.show()
+    window.start()
 
     try:
-        viz.run()
+        exit_code = app.exec()
     except KeyboardInterrupt:
-        print("\n🛑 Interrupted by user.")
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
+        exit_code = 0
     finally:
-        audio.stop()
-        sys.exit(0)
+        window.shutdown()
+
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

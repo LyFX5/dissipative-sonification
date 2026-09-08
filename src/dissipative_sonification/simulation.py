@@ -12,6 +12,16 @@ class GrayScott:
         self.V = np.zeros((height, width), dtype=np.float32)
         self.f = cfg.DEFAULT_F
         self.k = cfg.DEFAULT_K
+        self.paint_U = np.zeros((height, width), dtype=np.float32)
+        self.paint_V = np.zeros((height, width), dtype=np.float32)
+        self._seed()
+
+    def reset(self):
+        """Re-initialize fields and clear any painted concentration."""
+        self.U[...] = 1.0
+        self.V[...] = 0.0
+        self.paint_U[...] = 0.0
+        self.paint_V[...] = 0.0
         self._seed()
 
     def _seed(self):
@@ -19,6 +29,38 @@ class GrayScott:
         cx, cy = self.width // 2, self.height // 2
         self.V[cy - 3 : cy + 3, cx - 3 : cx + 3] = 1.0
         self.U[cy - 3 : cy + 3, cx - 3 : cx + 3] = 0.5
+
+    def add_brush(self, x, y, radius=cfg.BRUSH_RADIUS,
+                  d_u=cfg.BRUSH_CONC_U, d_v=cfg.BRUSH_CONC_V):
+        """Accumulate a concentration bump centred at grid cell (x, y).
+
+        The bump is stored in the paint buffers and merged into the field
+        once per tick by :meth:`apply_paint`. Both fields are clamped to
+        their physical range.
+        """
+        ci, cj = int(round(x)), int(round(y))
+        ci = min(max(ci, 0), self.width - 1)
+        cj = min(max(cj, 0), self.height - 1)
+        r = int(np.ceil(radius))
+        ys = np.arange(cj - r, cj + r + 1)
+        xs = np.arange(ci - r, ci + r + 1)
+        ys = ys[(ys >= 0) & (ys < self.height)]
+        xs = xs[(xs >= 0) & (xs < self.width)]
+        yy, xx = np.meshgrid(ys, xs, indexing="ij")
+        dist2 = (xx - ci) ** 2 + (yy - cj) ** 2
+        gauss = np.exp(-dist2 / (2 * radius**2))
+        self.paint_V[yy, xx] += d_v * gauss
+        self.paint_U[yy, xx] += d_u * gauss
+
+    def apply_paint(self):
+        """Merge accumulated paint into the field and decay it out."""
+        if self.paint_V.any() or self.paint_U.any():
+            self.V += self.paint_V
+            self.U += self.paint_U
+            np.clip(self.V, 0.0, 1.0, out=self.V)
+            np.clip(self.U, 0.0, 1.0, out=self.U)
+        self.paint_V *= cfg.BRUSH_DECAY
+        self.paint_U *= cfg.BRUSH_DECAY
 
     def step(self):
         """Single reaction-diffusion step with periodic boundaries"""

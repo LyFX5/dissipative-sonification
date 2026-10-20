@@ -92,7 +92,8 @@ class QApp(QMainWindow):
     def _tick(self):
         if self.paused:
             return
-        self.sim.step()
+        for _ in range(50):
+            self.sim.step()
         self.sim.apply_paint()
         metrics = self.sim.get_metrics()
         self.audio.update_state(metrics)

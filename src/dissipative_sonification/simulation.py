@@ -1,93 +1,156 @@
 import numpy as np
 
-# from scipy.ndimage import gaussian_filter
+"""
+# 1. Rolls
+f = 0.04
+k = 0.06
+f = 0.037
+k = 0.06
 
-from dissipative_sonification import config as cfg
+# 2. Spots
+f = 0.014
+k = 0.054
+
+# 3. Solitons
+f = 0.03
+k = 0.062
+
+# 4. Pulsating Solitons
+f = 0.025
+k = 0.06
+
+# 4. Waves
+f = 0.014
+k = 0.045
+
+# 5. Mazes
+f = 0.029
+k = 0.057
+"""
 
 
 class GrayScott:
-    def __init__(self, width=cfg.WIDTH, height=cfg.HEIGHT):
-        self.width, self.height = width, height
-        self.U = np.ones((height, width), dtype=np.float32)
-        self.V = np.zeros((height, width), dtype=np.float32)
-        self.f = cfg.DEFAULT_F
-        self.k = cfg.DEFAULT_K
-        self.paint_U = np.zeros((height, width), dtype=np.float32)
-        self.paint_V = np.zeros((height, width), dtype=np.float32)
+    def __init__(self, f=0.014, k=0.054):
+
+        grid_size = 256
+
+        self.DU = 0.16
+        self.DV = 0.08
+
+        self.dt = 1.0
+
+        self.width, self.height = grid_size, grid_size
+
+        self.U = np.ones((self.height, self.width), dtype=np.float32)
+        self.V = np.zeros((self.height, self.width), dtype=np.float32)
+
+        self.initial_condition_type = "drop"
+
+        self.f = f
+        self.k = k
+
         self._seed()
 
     def reset(self):
         """Re-initialize fields and clear any painted concentration."""
         self.U[...] = 1.0
         self.V[...] = 0.0
-        self.paint_U[...] = 0.0
-        self.paint_V[...] = 0.0
+        # self.paint_U[...] = 0.0
+        # self.paint_V[...] = 0.0
         self._seed()
 
-    def _seed(self):
+    def _drop_IC(self):
         """Drop initial catalyst patch"""
         cx, cy = self.width // 2, self.height // 2
-        self.V[cy - 3 : cy + 3, cx - 3 : cx + 3] = 1.0
         self.U[cy - 3 : cy + 3, cx - 3 : cx + 3] = 0.5
+        self.V[cy - 3 : cy + 3, cx - 3 : cx + 3] = 0.25
 
-    def add_brush(self, x, y, radius=cfg.BRUSH_RADIUS,
-                  d_u=cfg.BRUSH_CONC_U, d_v=cfg.BRUSH_CONC_V):
+    def _seed(self):
+
+        if self.initial_condition_type == "trefethen":
+            self._trefethen_IC()
+        elif self.initial_condition_type == "random":
+            self._random_IC()
+        elif self.initial_condition_type == "drop":
+            self._drop_IC()
+        else:
+            raise RuntimeError(
+                f"Unknown initial condition type: `{self.initial_condition_type}`"
+            )
+
+        # populate ghost cells (periodicity)
+        self.update_ghosts(self.U)
+        self.update_ghosts(self.V)
+
+    def add_brush(
+        self,
+        x,
+        y,
+        radius,
+        d_u,
+        d_v,
+    ):
         """Accumulate a concentration bump centred at grid cell (x, y).
 
         The bump is stored in the paint buffers and merged into the field
         once per tick by :meth:`apply_paint`. Both fields are clamped to
         their physical range.
         """
-        ci, cj = int(round(x)), int(round(y))
-        ci = min(max(ci, 0), self.width - 1)
-        cj = min(max(cj, 0), self.height - 1)
-        r = int(np.ceil(radius))
-        ys = np.arange(cj - r, cj + r + 1)
-        xs = np.arange(ci - r, ci + r + 1)
-        ys = ys[(ys >= 0) & (ys < self.height)]
-        xs = xs[(xs >= 0) & (xs < self.width)]
-        yy, xx = np.meshgrid(ys, xs, indexing="ij")
-        dist2 = (xx - ci) ** 2 + (yy - cj) ** 2
-        gauss = np.exp(-dist2 / (2 * radius**2))
-        self.paint_V[yy, xx] += d_v * gauss
-        self.paint_U[yy, xx] += d_u * gauss
+        ...
 
     def apply_paint(self):
         """Merge accumulated paint into the field and decay it out."""
-        if self.paint_V.any() or self.paint_U.any():
-            self.V += self.paint_V
-            self.U += self.paint_U
-            np.clip(self.V, 0.0, 1.0, out=self.V)
-            np.clip(self.U, 0.0, 1.0, out=self.U)
-        self.paint_V *= cfg.BRUSH_DECAY
-        self.paint_U *= cfg.BRUSH_DECAY
+        ...
 
     def step(self):
-        """Single reaction-diffusion step with periodic boundaries"""
-        lap_U = (
-            np.roll(self.U, 1, axis=0)
-            + np.roll(self.U, -1, axis=0)
-            + np.roll(self.U, 1, axis=1)
-            + np.roll(self.U, -1, axis=1)
-            - 4 * self.U
+
+        # internal domain
+        u_center = self.U[1:-1, 1:-1]
+        v_center = self.V[1:-1, 1:-1]
+
+        # advance state (Euler step)
+        uv2 = u_center * np.power(v_center, 2)
+        u_center += self.dt * (
+            self.DU * self.laplacian(self.U) - uv2 + self.f * (1 - u_center)
         )
-        lap_V = (
-            np.roll(self.V, 1, axis=0)
-            + np.roll(self.V, -1, axis=0)
-            + np.roll(self.V, 1, axis=1)
-            + np.roll(self.V, -1, axis=1)
-            - 4 * self.V
+        v_center += self.dt * (
+            self.DV * self.laplacian(self.V)
+            + uv2
+            - (self.f + self.k) * v_center
         )
 
-        reaction = self.U * self.V**2
-        self.U += cfg.DT * (cfg.DU * lap_U - reaction + self.f * (1 - self.U))
-        self.V += cfg.DT * (
-            cfg.DV * lap_V + reaction - (self.f + self.k) * self.V
-        )
+        # update ghost cells
+        self.update_ghosts(self.U)
+        self.update_ghosts(self.V)
 
-        # Clamp to physical bounds
-        np.clip(self.U, 0.0, 1.0, out=self.U)
-        np.clip(self.V, 0.0, 1.0, out=self.V)
+    @staticmethod
+    def laplacian(a, h=1):
+        """
+        Discretization of Laplacian operator
+
+        Arguments:
+            a: 2D array
+        """
+        return (
+            a[2:, 1:-1]
+            + a[1:-1, 2:]
+            + a[0:-2, 1:-1]
+            + a[1:-1, 0:-2]
+            - 4 * a[1:-1, 1:-1]
+        ) * (1 / h**2)
+
+    @staticmethod
+    def update_ghosts(v):
+        """
+        Apply periodic boundary conditions
+
+        Arguments:
+            v: 2D array
+        """
+        v[0, :] = v[-2, :]
+        v[:, 0] = v[:, -2]
+        v[-1, :] = v[1, :]
+        v[:, -1] = v[:, 1]
 
     def get_metrics(self):
         """Extract sonification-relevant features"""

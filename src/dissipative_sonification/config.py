@@ -21,13 +21,13 @@ MIN_FREQ = BASE_FREQ
 MAX_FREQ = BASE_FREQ * 4  # C4
 
 # === Mapping Ranges ===
-F_TEMPO_MIN, F_TEMPO_MAX = 40, 180          # BPM
-K_FILTER_MIN, K_FILTER_MAX = 200, 18000     # Hz
+F_TEMPO_MIN, F_TEMPO_MAX = 40, 180  # BPM
+K_FILTER_MIN, K_FILTER_MAX = 200, 18000  # Hz
 ENTROPY_NOISE_MIN, ENTROPY_NOISE_MAX = -60, -10  # dB
 GRADIENT_DIST_MIN, GRADIENT_DIST_MAX = 0.0, 0.8  # saturation index
 
 # === Interactive Painting (brush) ===
-BRUSH_RADIUS = 2.0        # grid cells
-BRUSH_CONC_U = -0.4       # delta added to U per tick within brush
-BRUSH_CONC_V = 0.6        # delta added to V per tick within brush
-BRUSH_DECAY = 0.99        # per-tick decay of any residual painted amount
+BRUSH_RADIUS = 2.0  # grid cells
+BRUSH_CONC_U = -0.4  # delta added to U per tick within brush
+BRUSH_CONC_V = 0.6  # delta added to V per tick within brush
+BRUSH_DECAY = 0.99  # per-tick decay of any residual painted amount

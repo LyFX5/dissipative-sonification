@@ -13,7 +13,6 @@ from PySide6.QtWidgets import QWidget
 from dissipative_sonification.simulation import GrayScott
 from dissipative_sonification import config as cfg
 
-
 # A fire-ish LUT close to matplotlib's "inferno"; 256 RGB entries.
 _INFERNO = np.array(
     [

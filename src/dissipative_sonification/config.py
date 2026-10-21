@@ -1,10 +1,56 @@
 import numpy as np
 
+"""
+# 1. Rolls
+f = 0.04
+k = 0.06
+f = 0.037
+k = 0.06
+
+# 2. Spots
+f = 0.014
+k = 0.054
+
+# 3. Solitons
+f = 0.03
+k = 0.062
+
+# 4. Pulsating Solitons
+f = 0.025
+k = 0.06
+
+# 4. Waves
+f = 0.014
+k = 0.045
+
+# 5. Mazes
+f = 0.029
+k = 0.057
+
+# 6. ...
+f = 0.0181
+k = 0.0540
+"""
+
+
 # === Simulation Parameters ===
 WIDTH, HEIGHT = 128, 128
+
 DT = 1.0
+
+DU = 0.16
+DV = 0.8
+
+"""
+OR
 DU = 1.0
 DV = 0.5
+
+Fo = 0.8
+
+DX = np.sqrt(DT * 4 * max(DU, DV) / Fo)
+"""
+
 DEFAULT_F = 0.055
 DEFAULT_K = 0.062
 

@@ -7,7 +7,7 @@ class Visualizer:
     def __init__(self, sim: GrayScott):
         self.sim = sim
 
-        self.steps_per_frame = 10
+        self.steps_per_frame = 60
 
         self.paused = False
 

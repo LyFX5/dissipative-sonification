@@ -31,10 +31,11 @@ from dissipative_sonification import config as cfg
 
 
 class QApp(QMainWindow):
-    FPS = 30
+    FPS = 60
     INTERVAL_MS = int(1000 / FPS)
-
-    STEPS_PER_FRAME = 10
+    _SIM_TIME_PER_SCREEN_TIME = 10
+    SIM_STEPS_PER_FRAME = int(_SIM_TIME_PER_SCREEN_TIME / cfg.DT)
+    FRAMES_PER_PLOTS_UPDATE = FPS
 
     def __init__(self, sim: GrayScott = None, audio: AudioEngine = None):
         super().__init__()
@@ -76,6 +77,8 @@ class QApp(QMainWindow):
         self._timer.timeout.connect(self._tick)
         self.paused = False
 
+        self.frame = 0
+
     # ------------------------------------------------------------------ #
     # Control
     # ------------------------------------------------------------------ #
@@ -96,13 +99,15 @@ class QApp(QMainWindow):
     def _tick(self):
         if self.paused:
             return
-        for _ in range(self.STEPS_PER_FRAME):
+        for _ in range(self.SIM_STEPS_PER_FRAME):
             self.sim.step()
-        self.sim.apply_paint()
+            self.sim.apply_paint()
         metrics = self.sim.get_metrics()
         self.audio.update_state(metrics)
         self.matrix.update_frame()
-        self.plots.update_frame(metrics)
+        if (self.frame % self.FRAMES_PER_PLOTS_UPDATE) == 0:
+            self.plots.update_frame(metrics)
+        self.frame += 1
 
     # ------------------------------------------------------------------ #
     # Lifecycle

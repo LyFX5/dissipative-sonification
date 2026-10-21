@@ -61,8 +61,8 @@ class GrayScott:
         if self.paint_V.any() or self.paint_U.any():
             self.V += self.paint_V
             self.U += self.paint_U
-            # np.clip(self.V, 0.0, 1.0, out=self.V)
-            # np.clip(self.U, 0.0, 1.0, out=self.U)
+            np.clip(self.V, 0.0, 1.0, out=self.V)
+            np.clip(self.U, 0.0, 1.0, out=self.U)
         self.paint_V *= cfg.BRUSH_DECAY
         self.paint_U *= cfg.BRUSH_DECAY
 

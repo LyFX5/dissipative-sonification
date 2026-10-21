@@ -2,6 +2,8 @@ import numpy as np
 
 """
 # 1. Rolls
+f = 0.055
+k = 0.062
 f = 0.04
 k = 0.06
 f = 0.037
@@ -34,22 +36,16 @@ k = 0.0540
 
 
 # === Simulation Parameters ===
-WIDTH, HEIGHT = 128, 128
+WIDTH, HEIGHT = 256, 256
 
 DT = 1.0
 
-DU = 0.16
-DV = 0.8
-
-"""
-OR
 DU = 1.0
 DV = 0.5
 
-Fo = 0.8
+Fo = 0.2
 
-DX = np.sqrt(DT * 4 * max(DU, DV) / Fo)
-"""
+DX = np.sqrt(max(DU, DV) * DT / Fo)
 
 DEFAULT_F = 0.055
 DEFAULT_K = 0.062

@@ -40,8 +40,8 @@ WIDTH, HEIGHT = 256, 256
 
 DT = 1.0
 
-DU = 1.0
-DV = 0.5
+DU = 2 * 1.0
+DV = 2 * 0.5
 
 Fo = 0.2
 
@@ -50,9 +50,16 @@ DX = np.sqrt(max(DU, DV) * DT / Fo)
 DEFAULT_F = 0.055
 DEFAULT_K = 0.062
 
+# === Rendering Parameters ===
+FPS = 60
+SIM_STEPS_PER_FRAME = 10
+FRAMES_PER_PLOTS_UPDATE = FPS
+FRAMES_PER_METRICS_UPDATE = 1
+FRAMES_PER_AUDIO_UPDATE = 1
+
 # === Audio Parameters ===
-SAMPLE_RATE = 44100
-FRAME_SIZE = 1024
+SAMPLE_RATE = 44100  # analogue of FPS in sound
+FRAMES_BLOCK_SIZE = 512  # number of frames in callback’s batch
 MAX_VOICES = 8
 
 # === Musical Mapping ===
@@ -70,6 +77,6 @@ GRADIENT_DIST_MIN, GRADIENT_DIST_MAX = 0.0, 0.8  # saturation index
 
 # === Interactive Painting (brush) ===
 BRUSH_RADIUS = 2.0  # grid cells
-BRUSH_CONC_U = -0.4  # delta added to U per tick within brush
-BRUSH_CONC_V = 0.6  # delta added to V per tick within brush
+BRUSH_CONC_U = -0.04  # delta added to U per tick within brush
+BRUSH_CONC_V = 0.06  # delta added to V per tick within brush
 BRUSH_DECAY = 0.99  # per-tick decay of any residual painted amount

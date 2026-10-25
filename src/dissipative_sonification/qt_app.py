@@ -11,9 +11,6 @@ metric extraction -> audio state push -> matrix repaint -> plot update.
 The audio engine runs on its own PortAudio callback thread.
 """
 
-import datetime
-
-import numpy as np
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QMainWindow,
@@ -31,11 +28,7 @@ from dissipative_sonification import config as cfg
 
 
 class QApp(QMainWindow):
-    FPS = 60
-    INTERVAL_MS = int(1000 / FPS)
-    _SIM_TIME_PER_SCREEN_TIME = 10
-    SIM_STEPS_PER_FRAME = int(_SIM_TIME_PER_SCREEN_TIME / cfg.DT)
-    FRAMES_PER_PLOTS_UPDATE = FPS
+    INTERVAL_MS = int(1000 / cfg.FPS)
 
     def __init__(self, sim: GrayScott = None, audio: AudioEngine = None):
         super().__init__()
@@ -99,14 +92,22 @@ class QApp(QMainWindow):
     def _tick(self):
         if self.paused:
             return
-        for _ in range(self.SIM_STEPS_PER_FRAME):
+
+        if (self.frame % cfg.FRAMES_PER_METRICS_UPDATE) == 0:
+            metrics = self.sim.get_metrics()
+
+        if (self.frame % cfg.FRAMES_PER_AUDIO_UPDATE) == 0:
+            self.audio.update_state(metrics)
+
+        if (self.frame % cfg.FRAMES_PER_PLOTS_UPDATE) == 0:
+            self.plots.update_frame(metrics)
+
+        self.matrix.update_frame()
+
+        for _ in range(cfg.SIM_STEPS_PER_FRAME):
             self.sim.step()
             self.sim.apply_paint()
-        metrics = self.sim.get_metrics()
-        self.audio.update_state(metrics)
-        self.matrix.update_frame()
-        if (self.frame % self.FRAMES_PER_PLOTS_UPDATE) == 0:
-            self.plots.update_frame(metrics)
+
         self.frame += 1
 
     # ------------------------------------------------------------------ #

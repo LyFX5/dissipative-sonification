@@ -12,7 +12,7 @@ class GrayScott:
         self.k = cfg.DEFAULT_K
         self.paint_U = np.zeros((height, width), dtype=np.float32)
         self.paint_V = np.zeros((height, width), dtype=np.float32)
-        self._seed()
+        # self._seed()
 
     def reset(self):
         """Re-initialize fields and clear any painted concentration."""
@@ -92,7 +92,14 @@ class GrayScott:
     def get_metrics(self):
         """Extract sonification-relevant features"""
         v_mean = np.mean(self.V)
-        v_row = self.V[self.height // 2, :]  # horizontal scan line for pitch
+        v_row = np.round(
+            self.V[self.height // 2, :], 5
+        )  # horizontal scan line for pitch
+        v_col = np.round(
+            self.V[:, self.width // 2], 5
+        )  # vertical scan line for pitch
+        v_means_of_cols = np.mean(self.V, axis=0)
+        v_maxs_of_cols = np.mean(self.V, axis=0)
 
         # Entropy (Shannon)
         hist, _ = np.histogram(self.V, bins=32, range=(0, 1))
@@ -116,6 +123,9 @@ class GrayScott:
             "k": self.k,
             "v_mean": v_mean,
             "v_row": v_row,
+            "v_col": v_col,
+            "v_means_of_cols": v_means_of_cols,
+            "v_maxs_of_cols": v_maxs_of_cols,
             "entropy": entropy,
             "gradient": np.clip(grad_norm, 0, 1),
             "pan": pan,

@@ -222,7 +222,9 @@ class MatrixWidget(QWidget):
         if self._image is None:
             self._rebuild_image()
         scaled = self._image.scaled(
-            self.size(), Qt.KeepAspectRatio, Qt.FastTransformation
+            self.size(),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation,  # Qt.FastTransformation
         )
         x = (self.width() - scaled.width()) // 2
         y = (self.height() - scaled.height()) // 2
@@ -236,7 +238,9 @@ class MatrixWidget(QWidget):
             return None
         # recompute the same placement as paintEvent
         scaled = self._image.scaled(
-            self.size(), Qt.KeepAspectRatio, Qt.FastTransformation
+            self.size(),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation,  # Qt.FastTransformation
         )
         x = (self.width() - scaled.width()) // 2
         y = (self.height() - scaled.height()) // 2

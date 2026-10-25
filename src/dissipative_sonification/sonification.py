@@ -44,7 +44,6 @@ class AudioEngine:
         if status:
             print(f"⚠️ Audio callback status: {status}")
         with self.lock:
-
             f, k = self.state["f"], self.state["k"]
             v_mean = self.state["v_mean"]
             v_row = self.state["v_row"]
@@ -55,6 +54,33 @@ class AudioEngine:
             # gradient = self.state["gradient"]
             pan = self.state["pan"]
 
+        """
+        t = np.linspace(0, frames / cfg.SAMPLE_RATE, frames, endpoint=False)
+        amp = 0.4
+        freq = 100000 * f
+        outdata[:, 0] = amp * np.sin(2 * np.pi * freq * t)
+        outdata[:, 1] = outdata[:, 0] * 0.8
+
+        v_row_resized = self.resize_array(v_row, frames)
+        v_col_resized = self.resize_array(v_col, frames)
+        v_means_of_cols_resized = self.resize_array(v_means_of_cols, frames)
+        """
+        v_maxs_of_cols_resezed = self.resize_array(v_maxs_of_cols, frames)
+
+        outdata[:, 0] = v_maxs_of_cols_resezed * 0.8
+        outdata[:, 1] = v_maxs_of_cols_resezed * 0.8
+
+        """
+        current_time = time.currentTime
+        if int(current_time) % 10 == 0:
+            print(f"{current_time=}")
+            print(f"{v_row=}")
+            print(f"{v_row_resized=}")
+            print(f"{outdata=}")
+            print()
+        """
+
+        """
         # 1. Tempo/Event Rate → probability of triggering notes this frame
         bpm = cfg.F_TEMPO_MIN + (
             15.0 * f * (cfg.F_TEMPO_MAX - cfg.F_TEMPO_MIN)
@@ -83,7 +109,6 @@ class AudioEngine:
                 outdata[:, 0] += amps[v] * np.sin(self._phases[v])
                 outdata[:, 1] += amps[v] * np.sin(self._phases[v])
 
-        """
         # 4. Add noise floor (entropy-driven)
         noise_amp = (
             10
@@ -95,27 +120,23 @@ class AudioEngine:
         )
         noise = np.random.randn(cfg.FRAMES_BLOCK_SIZE, 2) * noise_amp
         outdata += noise
-        """
 
-        """
         # 5. Simple 1-pole LPF (k controls cutoff)
         cutoff = cfg.K_FILTER_MIN + k * (cfg.K_FILTER_MAX - cfg.K_FILTER_MIN)
         alpha = 2 * np.pi * cutoff / cfg.SAMPLE_RATE
         alpha = np.clip(alpha, 0, 1)
         # Apply filter in-place (approximate)
         outdata[1:] = alpha * outdata[1:] + (1 - alpha) * outdata[:-1]
-        """
 
-        """
         # 6. Stereo panning
         left_gain = np.cos(0.5 * (pan + 1) * np.pi / 2)
         right_gain = np.sin(0.5 * (pan + 1) * np.pi / 2)
         outdata[:, 0] *= left_gain
         outdata[:, 1] *= right_gain
-        """
 
         # Clip to prevent distortion
-        # np.clip(outdata, -1.0, 1.0, out=outdata)
+        np.clip(outdata, -1.0, 1.0, out=outdata)
+        """
 
     def start(self):
         self._stream = sd.OutputStream(

@@ -68,7 +68,8 @@ SCALE_DEGREES = np.array([0, 2, 3, 5, 7, 9, 10, 12])
 BASE_FREQ = 440  # A4
 # 65.41  # C2
 MIN_FREQ = BASE_FREQ
-MAX_FREQ = BASE_FREQ * 4  # A6 # C4
+MAX_FREQ = BASE_FREQ * 4  # A6
+# C4
 
 # === Mapping Ranges ===
 F_TEMPO_MIN, F_TEMPO_MAX = 4 * 40, 4 * 180  # 40, 180  # BPM

@@ -55,11 +55,12 @@ class AudioEngine:
             # gradient = self.state["gradient"]
             pan = self.state["pan"]
 
-        """
         # 1. Tempo/Event Rate → probability of triggering notes this frame
-        bpm = cfg.F_TEMPO_MIN + (f * (cfg.F_TEMPO_MAX - cfg.F_TEMPO_MIN))
+        bpm = cfg.F_TEMPO_MIN + (
+            15.0 * f * (cfg.F_TEMPO_MAX - cfg.F_TEMPO_MIN)
+        )
         event_prob = bpm / 60.0 / (cfg.SAMPLE_RATE / cfg.FRAMES_BLOCK_SIZE)
-        trigger = True  # np.random.random() < event_prob
+        trigger = np.random.random() < event_prob
 
         # 2. Map V-row to frequencies (quantized to scale)
         freqs = np.zeros(cfg.MAX_VOICES)
@@ -71,7 +72,7 @@ class AudioEngine:
                 pitches.astype(int), 0, len(cfg.SCALE_DEGREES) - 1
             )
             freqs = cfg.BASE_FREQ * (2 ** (cfg.SCALE_DEGREES[pitches] / 12.0))
-            amps = np.ones(cfg.MAX_VOICES) * 0.15 * v_mean
+            amps = np.ones(cfg.MAX_VOICES) * v_mean * 2.0  # * 0.15
 
         # 3. Phase accumulation synthesis
         for v in range(cfg.MAX_VOICES):
@@ -81,32 +82,6 @@ class AudioEngine:
                 self._phases[v] %= 2 * np.pi
                 outdata[:, 0] += amps[v] * np.sin(self._phases[v])
                 outdata[:, 1] += amps[v] * np.sin(self._phases[v])
-        
-
-        t = np.linspace(0, frames / cfg.SAMPLE_RATE, frames, endpoint=False)
-        amp = 0.4
-        freq = 100000 * f
-        outdata[:, 0] = amp * np.sin(2 * np.pi * freq * t)
-        outdata[:, 1] = outdata[:, 0] * 0.8
-        """
-
-        v_row_resized = self.resize_array(v_row, frames)
-        v_col_resized = self.resize_array(v_col, frames)
-        v_means_of_cols_resized = self.resize_array(v_means_of_cols, frames)
-        v_maxs_of_cols_resezed = self.resize_array(v_maxs_of_cols, frames)
-
-        outdata[:, 0] = v_maxs_of_cols_resezed
-        outdata[:, 1] = v_maxs_of_cols_resezed
-
-        """
-        current_time = time.currentTime
-        if int(current_time) % 10 == 0:
-            print(f"{current_time=}")
-            print(f"{v_row=}")
-            print(f"{v_row_resized=}")
-            print(f"{outdata=}")
-            print()
-        """
 
         """
         # 4. Add noise floor (entropy-driven)
@@ -118,16 +93,20 @@ class AudioEngine:
             )
             / 20
         )
-        noise = np.random.randn(cfg.FRAME_SIZE, 2) * noise_amp
+        noise = np.random.randn(cfg.FRAMES_BLOCK_SIZE, 2) * noise_amp
         outdata += noise
+        """
 
+        """
         # 5. Simple 1-pole LPF (k controls cutoff)
         cutoff = cfg.K_FILTER_MIN + k * (cfg.K_FILTER_MAX - cfg.K_FILTER_MIN)
         alpha = 2 * np.pi * cutoff / cfg.SAMPLE_RATE
         alpha = np.clip(alpha, 0, 1)
         # Apply filter in-place (approximate)
         outdata[1:] = alpha * outdata[1:] + (1 - alpha) * outdata[:-1]
+        """
 
+        """
         # 6. Stereo panning
         left_gain = np.cos(0.5 * (pan + 1) * np.pi / 2)
         right_gain = np.sin(0.5 * (pan + 1) * np.pi / 2)
@@ -141,7 +120,7 @@ class AudioEngine:
     def start(self):
         self._stream = sd.OutputStream(
             samplerate=cfg.SAMPLE_RATE,
-            # blocksize=cfg.FRAMES_BLOCK_SIZE,
+            blocksize=cfg.FRAMES_BLOCK_SIZE,
             channels=2,
             callback=self._callback,
         )

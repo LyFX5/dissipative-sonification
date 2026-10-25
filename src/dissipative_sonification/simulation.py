@@ -99,7 +99,7 @@ class GrayScott:
             self.V[:, self.width // 2], 5
         )  # vertical scan line for pitch
         v_means_of_cols = np.mean(self.V, axis=0)
-        v_maxs_of_cols = np.mean(self.V, axis=0)
+        v_maxs_of_cols = np.max(self.V, axis=0)
 
         # Entropy (Shannon)
         hist, _ = np.histogram(self.V, bins=32, range=(0, 1))

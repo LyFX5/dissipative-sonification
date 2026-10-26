@@ -58,21 +58,26 @@ FRAMES_PER_METRICS_UPDATE = 1
 FRAMES_PER_AUDIO_UPDATE = 1
 
 # === Audio Parameters ===
-SAMPLE_RATE = 44100  # analogue of FPS in sound
-FRAMES_BLOCK_SIZE = 512  # number of frames in callback’s batch
+SAMPLE_RATE = 44100  # CD common
+"""
+analogue of FPS in sound.
+it is like dencity:
+    The more samples taken per second, 
+    the more accurately the digital representation captures 
+    the original sound wave.
+"""
+# FRAMES_BLOCK_SIZE = 512  # number of frames in callback’s batch
 MAX_VOICES = 8
 
 # === Musical Mapping ===
 # Dorian-mode scale degrees (relative to base)
 SCALE_DEGREES = np.array([0, 2, 3, 5, 7, 9, 10, 12])
 BASE_FREQ = 440  # A4
-# 65.41  # C2
 MIN_FREQ = BASE_FREQ
 MAX_FREQ = BASE_FREQ * 4  # A6
-# C4
 
 # === Mapping Ranges ===
-F_TEMPO_MIN, F_TEMPO_MAX = 4 * 40, 4 * 180  # 40, 180  # BPM
+F_TEMPO_MIN, F_TEMPO_MAX = 40, 180  # 40, 180  # BPM
 K_FILTER_MIN, K_FILTER_MAX = 200, 18000  # Hz
 ENTROPY_NOISE_MIN, ENTROPY_NOISE_MAX = -60, -10  # dB
 GRADIENT_DIST_MIN, GRADIENT_DIST_MAX = 0.0, 0.8  # saturation index
